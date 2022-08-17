@@ -13,6 +13,8 @@
                 <span class="input-group-text" id="route_label">Route</span>
                 <input class="form-control" id="route" name="route" required>
                 <button class="btn btn-success" type="button" id="addRow">Add</button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#importModal">Import from file</button>
             </div>
         </form>
         <span id="error-tooltip" class="invalid-feedback"></span>
@@ -27,6 +29,29 @@
             </thead>
         </table>
         <button class="btn btn-success" type="button" id="sendTable">Send to database</button>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">Import from file</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="upload" action="" name="upload" method="post">
+                    <div class="input-group">
+                        <input type="file" class="form-control" id="inputFile" accept=".txt"
+                            aria-describedby="inputGroupFileAddon04" aria-label="Upload">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="uploadFile" class="btn btn-primary">Upload</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -91,7 +116,6 @@
                         $(this).on('click', function (evt) {
                             therow = $(this);
                             var dtRow = therow.parents('tr');
-                            console.log(dtRow[0].rowIndex);
                             if (confirm("Are you sure to delete this row?")) {
                                 t.row(dtRow[0].rowIndex - 1).remove().draw(false);
                             }
@@ -131,7 +155,38 @@
             });
         });
 
-       
+        $("#uploadFile").on('click', function () {
+            var file = $('#inputFile').prop('files')[0];
+            var send = new FormData();
+            send.append('file', file)
+            fetch('/api/upload', {
+                method: "POST",
+                body: send,
+            }).then(function (response) {
+                resp = response.json();
+                return resp;
+            }).then(function (data) {
+                $('#upload')[0].reset();
+                console.log(data);
+                var button = '<button type="button" class="btn btn-danger btn-xs dt-delete">Delete</button>'
+                pdata = JSON.parse(JSON.stringify(data))
+                $.each(pdata, function (key, result) {
+                    t.row.add([result['apn'], result['ip'], result['route'], button]);
+                    t.draw()
+                    $('.dt-delete').off('click');
+                    $('.dt-delete').each(function () {
+                        $(this).on('click', function (evt) {
+                            therow = $(this);
+                            var dtRow = therow.parents('tr');
+                            if (confirm("Are you sure to delete this row?")) {
+                                t.row(dtRow[0].rowIndex - 1).remove().draw(false);
+                            }
+                        });
+                    });
+                });
+                $('#importModal').modal('hide');
+            });
+        });
     });
 </script>
 

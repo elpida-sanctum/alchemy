@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.sql import func
@@ -114,6 +115,36 @@ def delete():
         resp = dbase_del_apn(req['id'])
         print(resp)
         return {'deleted': resp}
+
+
+@appweb.route('/api/upload', methods=['GET', 'POST'])
+def upload():
+    if request.method == 'POST':
+        req = request.files.get('file')
+        fdata = req.stream.read().decode('utf-8')
+        #print(fdata)
+        flines = fdata.splitlines()
+        result = {}
+        for c, string in enumerate(flines):
+            #print(string)
+            cc = str(c)
+            try:
+                apn, ip, route = string.split()
+            except ValueError:
+                continue
+            #print("apn: ", apn, "ip: ", ip, "route: ", route)
+            dict = { 'apn': apn, 'ip': ip, 'route': route }
+            res = requests.post('http://127.0.0.1:5000/api/validate', json=dict)
+            resj = res.json()
+            #print('response:', resj)
+            d = {}
+            for i in ['apn', 'ip', 'route']:
+                if resj[i]['valid']:
+                    d[i] = resj[i]['value']
+            if len(d) == 3:
+                result[cc] = d
+        #print(result)
+        return result
 
 
 if __name__ == '__main__':

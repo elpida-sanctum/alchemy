@@ -32,14 +32,15 @@
 </body>
 <script>
     $(document).ready(function () {
-        var t = $('#data-table').DataTable();
-
-        $('.dt-delete').each(function () {
-            $(this).on('click', function (evt) {
+        var t = $('#data-table').DataTable(); 
+        //$('.dt-delete').each(function () {
+            $("#data-table tbody").on('click', '.dt-delete', function (event) {
                 therow = $(this);
                 var dtRow = therow.parents('tr');
-                var data = t.row(dtRow[0].rowIndex - 1).data();
-                console.log(data[0]);
+                var indRow = t.row(dtRow).index();
+                console.log(indRow);
+                var data = t.row(indRow).data();
+                console.log(data);
                 var send = JSON.stringify({ 'id': data[0]});
                 fetch('/api/delete', {
                     method: "POST",
@@ -58,11 +59,11 @@
                     pdata = JSON.parse(JSON.stringify(data))
                     console.log(pdata.deleted);
                     if (pdata.deleted) {
-                        t.row(dtRow[0].rowIndex - 1).remove().draw(false);
+                        t.row(indRow).remove().draw(false);
                     }
                 });
             });
-        });
+        //});
     });
 </script>
 
