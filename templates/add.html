@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block body %}
+
+<div class="card">
+    <h4 class="card-header">Add to table</h4>
+    <div class="card-body">
+        <form id="add-form" action="" method="post" name="add-form">
+            <div class="input-group mb-3 has-validation">
+                <span class="input-group-text" id="apn_label">APN</span>
+                <input class="form-control" id="apn" name="apn" required>
+                <span class="input-group-text" id="ip_label">IP</span>
+                <input class="form-control" id="ip" name="ip" required>
+                <span class="input-group-text" id="route_label">Route</span>
+                <input class="form-control" id="route" name="route" required>
+                <button class="btn btn-success" type="button" id="addRow">Add</button>
+            </div>
+        </form>
+        <span id="error-tooltip" class="invalid-feedback"></span>
+        <table class="table" id="add-table">
+            <thead>
+                <tr>
+                    <th>APN</th>
+                    <th>IP</th>
+                    <th>Route</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+        <button class="btn btn-success" type="button" id="sendTable">Send to database</button>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        var t = $('#add-table').DataTable({
+            "columns": [
+                { "name": "apn" },
+                { "name": "ip" },
+                { "name": "route" },
+                { "name": "actions" },
+            ]
+        });
+
+        $('#addRow').on('click', function () {
+            var send = JSON.stringify({ 'apn': $('#apn').val(), 'ip': $('#ip').val(), 'route': $('#route').val() })
+            fetch('/api/validate', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    Connection: "close",
+                    Origin: "/api/validate",
+                },
+                body: send,
+            }).then(function (response) {
+                resp = response.json();
+                return resp;
+            }).then(function (data) {
+                var button = '<button type="button" class="btn btn-danger btn-xs dt-delete">Delete</button>'
+                pdata = JSON.parse(JSON.stringify(data))
+                var result = {}
+                var validity = {}
+                $.each(pdata, function (key, val) {
+                    console.log(key + ": " + val.valid + "; " + val.value);
+                    if (val.valid) {
+                        $("#" + key).removeClass('is-invalid');
+                        $("#" + key).addClass('is-valid');
+                        result[key] = val.value;
+                        validity[key] = true;
+                    } else {
+                        $("#" + key + "-tooltip").text();
+                        $("#" + key).removeClass('is-valid');
+                        $("#" + key).addClass('is-invalid');
+                        $("#error-tooltip").text("Invalid data in field " + key);
+                        validity[key] = false;
+                    }
+                });
+                console.log(validity);
+                console.log(result);
+                var all_valid = true;
+                $.each(validity, function (key, value) {
+                    all_valid = all_valid && value;
+                });
+                console.log(all_valid);
+                if (all_valid) {
+                    t.row.add([result['apn'], result['ip'], result['route'], button]);
+                    t.draw()
+                    $('.dt-delete').off('click');
+                    $('.dt-delete').each(function () {
+                        $(this).on('click', function (evt) {
+                            therow = $(this);
+                            var dtRow = therow.parents('tr');
+                            console.log(dtRow[0].rowIndex);
+                            if (confirm("Are you sure to delete this row?")) {
+                                t.row(dtRow[0].rowIndex - 1).remove().draw(false);
+                            }
+                        });
+                    });
+                }
+            });
+
+        });
+
+        $('#sendTable').on('click', function () {
+            var dataT = t.data().toArray()
+            console.log(dataT)
+            fetch('/api/add_table', {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Accept: "application/json",
+                    "Accept-Encoding": "gzip, deflate, br",
+                    Connection: "close",
+                    Origin: "/api/add_table",
+                },
+                body: JSON.stringify({ dataT }),
+            }).then(function (response) {
+                resp = response.json();
+                return resp;
+            }).then(function (id) {
+                console.log(id);
+                $.each(id, function (key, value) {
+                    var row = t.row(key).node();
+                    if (value) {
+                        $(row).addClass('table-success');
+                    } else {
+                        $(row).addClass('table-danger');
+                    }
+                });
+            });
+        });
+
+       
+    });
+</script>
+
+{% endblock %}
