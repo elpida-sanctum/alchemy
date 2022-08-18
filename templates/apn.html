@@ -1,0 +1,39 @@
+{% extends "add.html" %}
+{% block body %}
+
+<div class="card">
+    <h4 class="card-header">Add to table</h4>
+    <div class="card-body">
+        <form id="add-form" action="" method="post" name="add-form">
+            <div class="input-group mb-3 has-validation">
+                <span class="input-group-text" id="apn_label">APN</span>
+                <input class="form-control" id="apn" name="apn" required>
+                <span class="input-group-text" id="ip_label">IP</span>
+                <input class="form-control" id="ip" name="ip" required>
+                <span class="input-group-text" id="route_label">Route</span>
+                <input class="form-control" id="route" name="route" required>
+                <button class="btn btn-success" type="button" id="addRow">Add</button>
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal"
+                    data-bs-target="#importModal">Import from file</button>
+            </div>
+        </form>
+        <table class="table" id="add-table">
+            <thead>
+                <tr>
+                    <th>APN</th>
+                    <th>IP</th>
+                    <th>Route</th>
+                    <th></th>
+                </tr>
+            </thead>
+        </table>
+        <button class="btn btn-success" type="button" id="sendTable">Send to database</button>
+    </div>
+</div>
+{{ super() }}
+{% endblock %} 
+
+{% block scripts %}
+<script type="text/javascript" src="/static/apn.js">
+</script>
+{% endblock %}

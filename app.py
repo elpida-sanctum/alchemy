@@ -24,7 +24,7 @@ class radreply(dbase.Model):
 def dbase_add_apn(apn, ip, route):
     print(apn, ip, route)
     uname = apn + "/" + ip
-    check = radreply.query.filter_by(username = uname, value = route).first()
+    check = radreply.query.filter_by(username=uname, value=route).first()
     print(check)
     query = radreply(username=uname, attribute="Framed-Route",
                      op="+=", value=route)
@@ -36,10 +36,37 @@ def dbase_add_apn(apn, ip, route):
         return False
 
 
-def dbase_del_apn(id):
-    radreply.query.filter_by(id = id).delete()
+def dbase_add_msisdn(msisdn, ip, type):
+    print(msisdn, ip, type)
+    if type == "IP Address":
+        flag = True
+    elif type == "Route":
+        flag = False
+    else:
+        return False
+
+    if flag:
+        check = radreply.query.filter_by(username=msisdn).first()
+        print(check)
+        query = radreply(username=msisdn, attribute="Framed-IP-Address",
+                         op=":=", value=ip)
+    else:
+        check = radreply.query.filter_by(username=msisdn).first()
+        print(check)
+        query = radreply(username=msisdn, attribute="Framed-Route",
+                         op="+=", value=ip)
+    if check is None:
+        dbase.session.add(query)
+        dbase.session.commit()
+        return True
+    else:
+        return False
+
+
+def dbase_del(id):
+    radreply.query.filter_by(id=id).delete()
     dbase.session.commit()
-    check = radreply.query.filter_by(id = id).first()
+    check = radreply.query.filter_by(id=id).first()
     if check is None:
         return True
     else:
@@ -52,26 +79,47 @@ def index():
     return render_template("index.html", table=reps)
 
 
-@appweb.route('/add')
-def add():
-    return render_template("add.html")
+@appweb.route('/add_apn')
+def add_apn():
+    return render_template("apn.html")
 
 
-@appweb.route('/api/add_table', methods=['GET', 'POST'])
-def add_table():
+@appweb.route('/add_msisdn')
+def add_msisdn():
+    return render_template("msisdn.html")
+
+
+@appweb.route('/api/add_apn', methods=['GET', 'POST'])
+def send_apn_to_db():
     if request.method == "POST":
         req = request.get_json()
-        print("REQ=", req)
         resp_json = {}
         for line in req.values():
-            print("line=", line)
             for id, val in enumerate(line):
-                print(id, val)
                 apn = val[0]
                 ip = val[1]
                 route = val[2]
-                print("apn=",apn,"ip=",ip,"route=",route)
                 res = dbase_add_apn(apn, ip, route)
+                if res:
+                    resp_json[id] = True
+                elif not res:
+                    resp_json[id] = False
+        print(resp_json)
+        return resp_json
+
+
+@appweb.route('/api/add_msisdn', methods=['GET', 'POST'])
+def send_msisdn_to_db():
+    if request.method == "POST":
+        req = request.get_json()
+        print(req)
+        resp_json = {}
+        for line in req.values():
+            for id, val in enumerate(line):
+                msisdn = val[0]
+                ipr = val[1]
+                type = val[2]
+                res = dbase_add_msisdn(msisdn, ipr, type)
                 if res:
                     resp_json[id] = True
                 elif not res:
@@ -83,26 +131,34 @@ def add_table():
 @appweb.route('/api/validate', methods=['GET', 'POST'])
 def validate():
     resp = {}
-    apn_reg = re.compile(r"[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)")
-    ip_reg = re.compile(r"\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b")
-    route_reg = re.compile(r"\b(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))\b")
+    msisdn_reg = re.compile(r"79[0-9]{9}")
+    apn_reg = re.compile(
+        r"[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)")
+    ip_reg = re.compile(
+        r"\b(?:(?:2(?:[0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9])\.){3}(?:(?:2([0-4][0-9]|5[0-5])|[0-1]?[0-9]?[0-9]))\b")
+    route_reg = re.compile(
+        r"\b(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))\b")
     regex_dict = {
+        'msisdn': msisdn_reg,
         'apn': apn_reg,
         'ip': ip_reg,
         'route': route_reg,
     }
     if request.method == 'POST':
         req = request.get_json()
-        print(req['apn'], req['ip'], req['route'])
-        fields = ['apn', 'ip', 'route']
+        print(req)
+        fields = ['msisdn', 'apn', 'ip', 'route']
         for field in fields:
-            valid = bool(re.fullmatch(regex_dict[field], req[field]))
-            r = {
-                "valid": valid,
-                "value": req[field],
-            }
-            print(r)
-            resp[field] = r
+            try:
+                valid = bool(re.fullmatch(regex_dict[field], req[field]))
+                r = {
+                    "valid": valid,
+                    "value": req[field],
+                }
+                print(r)
+                resp[field] = r
+            except KeyError:
+                continue
         print(resp)
         return resp
 
@@ -112,7 +168,7 @@ def delete():
     if request.method == 'POST':
         req = request.get_json()
         print(req)
-        resp = dbase_del_apn(req['id'])
+        resp = dbase_del(req['id'])
         print(resp)
         return {'deleted': resp}
 
@@ -120,21 +176,24 @@ def delete():
 @appweb.route('/api/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
+        type = request.get('type')
+        print(type)
         req = request.files.get('file')
         fdata = req.stream.read().decode('utf-8')
-        #print(fdata)
+        # print(fdata)
         flines = fdata.splitlines()
         result = {}
         for c, string in enumerate(flines):
-            #print(string)
+            # print(string)
             cc = str(c)
             try:
                 apn, ip, route = string.split()
             except ValueError:
                 continue
             #print("apn: ", apn, "ip: ", ip, "route: ", route)
-            dict = { 'apn': apn, 'ip': ip, 'route': route }
-            res = requests.post('http://127.0.0.1:5000/api/validate', json=dict)
+            dict = {'apn': apn, 'ip': ip, 'route': route}
+            res = requests.post(
+                'http://127.0.0.1:5000/api/validate', json=dict)
             resj = res.json()
             #print('response:', resj)
             d = {}
@@ -143,7 +202,7 @@ def upload():
                     d[i] = resj[i]['value']
             if len(d) == 3:
                 result[cc] = d
-        #print(result)
+        # print(result)
         return result
 
 

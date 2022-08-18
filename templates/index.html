@@ -38,9 +38,7 @@
                 therow = $(this);
                 var dtRow = therow.parents('tr');
                 var indRow = t.row(dtRow).index();
-                console.log(indRow);
                 var data = t.row(indRow).data();
-                console.log(data);
                 var send = JSON.stringify({ 'id': data[0]});
                 fetch('/api/delete', {
                     method: "POST",
@@ -57,7 +55,6 @@
                     return resp;
                 }).then(function (data) {
                     pdata = JSON.parse(JSON.stringify(data))
-                    console.log(pdata.deleted);
                     if (pdata.deleted) {
                         t.row(indRow).remove().draw(false);
                     }
