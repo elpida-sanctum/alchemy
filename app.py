@@ -46,12 +46,12 @@ def dbase_add_msisdn(msisdn, ip, type):
         return False
 
     if flag:
-        check = radreply.query.filter_by(username=msisdn).first()
+        check = radreply.query.filter_by(username=msisdn, attribute="Framed-IP-Address").first()
         print(check)
         query = radreply(username=msisdn, attribute="Framed-IP-Address",
                          op=":=", value=ip)
     else:
-        check = radreply.query.filter_by(username=msisdn).first()
+        check = radreply.query.filter_by(username=msisdn, attribute="Framed-Route").first()
         print(check)
         query = radreply(username=msisdn, attribute="Framed-Route",
                          op="+=", value=ip)
