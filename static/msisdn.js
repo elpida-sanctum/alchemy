@@ -137,7 +137,7 @@ $(document).ready(function () {
                 t.draw()
                 $('.dt-delete').off('click');
                 $('.dt-delete').each(function () {
-                    $(this).on('click', function (evt) {
+                    $("#data-table tbody").on('click', '.dt-delete', function (evt) {
                         therow = $(this);
                         var dtRow = therow.parents('tr');
                         var indRow = t.row(dtRow).index();

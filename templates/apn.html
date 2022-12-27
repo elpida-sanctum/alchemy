@@ -17,7 +17,7 @@
                     data-bs-target="#importModal">Import from file</button>
             </div>
         </form>
-        <table class="table" id="add-table">
+        <!-- <table class="table" id="add-table">
             <thead>
                 <tr>
                     <th>APN</th>
@@ -26,7 +26,8 @@
                     <th></th>
                 </tr>
             </thead>
-        </table>
+        </table> -->
+        <div id="apn_table"></div>
         <button class="btn btn-success" type="button" id="sendTable">Send to database</button>
     </div>
 </div>
@@ -34,6 +35,6 @@
 {% endblock %} 
 
 {% block scripts %}
-<script type="text/javascript" src="/static/apn.js">
+<script type="text/javascript" src="/static/apn_tab.js">
 </script>
 {% endblock %}

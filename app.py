@@ -6,6 +6,7 @@ import config
 import re
 from collections import defaultdict
 from netaddr import IPAddress, IPNetwork
+import json 
 
 
 appweb = Flask(__name__)
@@ -46,12 +47,14 @@ def dbase_add_msisdn(msisdn, ip, type):
         return False
 
     if flag:
-        check = radreply.query.filter_by(username=msisdn, attribute="Framed-IP-Address").first()
+        check = radreply.query.filter_by(
+            username=msisdn, attribute="Framed-IP-Address").first()
         print(check)
         query = radreply(username=msisdn, attribute="Framed-IP-Address",
                          op=":=", value=ip)
     else:
-        check = radreply.query.filter_by(username=msisdn, attribute="Framed-Route").first()
+        check = radreply.query.filter_by(
+            username=msisdn, attribute="Framed-Route").first()
         print(check)
         query = radreply(username=msisdn, attribute="Framed-Route",
                          op="+=", value=ip)
@@ -94,16 +97,36 @@ def send_apn_to_db():
     if request.method == "POST":
         req = request.get_json()
         resp_json = {}
-        for line in req.values():
-            for id, val in enumerate(line):
-                apn = val[0]
-                ip = val[1]
-                route = val[2]
-                res = dbase_add_apn(apn, ip, route)
-                if res:
-                    resp_json[id] = True
-                elif not res:
-                    resp_json[id] = False
+        print(type(req), ": request: ", req)
+        for num, line in enumerate(req['dataT']):
+            print(type(line), ": line: ", line)
+            #for val in line:
+            apn = line['apn']
+            ip = line['ip']
+            route = line['route']
+            res = dbase_add_apn(apn, ip, route)
+            if res:
+                resp_json[num] = True
+            elif not res:
+                resp_json[num] = False
+        print("response: ", resp_json)
+        return resp_json
+
+
+@appweb.route('/api/add_apn_tab', methods=['GET', 'POST'])
+def send_apn_to_db_tab():
+    if request.method == "POST":
+        req = request.get_json()
+        resp_json = {}
+        for id, val in req:
+            apn = val[0]
+            ip = val[1]
+            route = val[2]
+            res = dbase_add_apn(apn, ip, route)
+            if res:
+                resp_json[id] = True
+            elif not res:
+                resp_json[id] = False
         print(resp_json)
         return resp_json
 
@@ -176,8 +199,8 @@ def delete():
 @appweb.route('/api/upload', methods=['GET', 'POST'])
 def upload():
     if request.method == 'POST':
-        type = request.get('type')
-        print(type)
+        #type = request.get('type')
+        # print(type)
         req = request.files.get('file')
         fdata = req.stream.read().decode('utf-8')
         # print(fdata)

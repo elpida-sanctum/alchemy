@@ -1,10 +1,22 @@
 $(document).ready(function () {
-    var t = $('#add-table').DataTable({
-        "columns": [
-            { "name": "apn" },
-            { "name": "ip" },
-            { "name": "route" },
-            { "name": "actions" },
+    var t = new Tabulator("#apn_table", {
+        height: "400px",
+        layout: "fitColumns",
+        placeholder: "No Data",
+        rowFormatter: function (row) {
+            if (row.getData().status == "Added") {
+                row.getElement().classList.add("table-success")
+            } else if (row.getData().status == "Exists") {
+                row.getElement().classList.add("table-danger")
+            }
+        },
+        columns: [
+            { title: "ID", field: "id", formatter: "rownum" },
+            { title: "APN", field: "apn", sorter: "string", width: 200 },
+            { title: "IP", field: "ip", sorter: "string", width: 100 },
+            { title: "Route", field: "route", sorter: "string", width: 200 },
+            { title: "Status", field: "status", sorter: "string", width: 200 },
+            { formatter: "buttonCross", width: 40, hozAlign: "center", cellClick: function (e, cell) { cell.getRow().delete() } }
         ]
     });
 
@@ -51,27 +63,25 @@ $(document).ready(function () {
             });
             console.log(all_valid);
             if (all_valid) {
-                t.row.add([result['apn'], result['ip'], result['route'], button]);
-                t.draw()
+                t.addRow({ apn: result['apn'], ip: result['ip'], route: result['route'], status: "New" })
+                //t.row.add([result['apn'], result['ip'], result['route'], button]);
+                //t.draw()
                 //$('.dt-delete').off('click');
                 //$('.dt-delete').each(function () {
-                    $("#data-table tbody").on('click', '.dt-delete', function (evt) {
-                        therow = $(this);
-                        var dtRow = therow.parents('tr');
-                        var indRow = t.row(dtRow).index();
-                        if (confirm("Are you sure to delete this row?")) {
-                            t.row(indRow).remove().draw(false);
-                        }
-                    });
-                //});
+                //    $("#data-table tbody").on('click', '.dt-delete', function (evt) {
+                //        therow = $(this);
+                //        var dtRow = therow.parents('tr');
+                //        var indRow = t.row(dtRow).index();
+                //        if (confirm("Are you sure to delete this row?")) {
+                //            t.row(indRow).remove().draw(false);
             }
         });
-
+        //});
     });
 
     $('#sendTable').on('click', function () {
-        var dataT = t.data().toArray()
-        console.log(dataT)
+        var dataT = t.getData();
+        console.log(dataT);
         fetch('/api/add_apn', {
             method: "POST",
             headers: {
@@ -88,12 +98,20 @@ $(document).ready(function () {
         }).then(function (id) {
             console.log(id);
             $.each(id, function (key, value) {
-                var row = t.row(key).node();
-                if (value) {
-                    $(row).addClass('table-success');
-                } else {
-                    $(row).addClass('table-danger');
-                }
+                console.log(value);
+                t.getRows().forEach(row => {
+                    var num = Number(row.getPosition()) - 1;
+                    if (value && key == num) {
+                        row.update({ status: "Added" });
+                        row.reformat();
+                    } else if (!value && key == num) {
+                        row.update({ status: "Exists" });
+                        row.reformat();
+                    };
+                });
+                //var num = Number(key)
+                //var row = t.getRow(num + 1);
+                //row.reformat()
             });
         });
     });
@@ -118,14 +136,14 @@ $(document).ready(function () {
                 t.draw()
                 //$('.dt-delete').off('click');
                 //$('.dt-delete').each(function () {
-                    $("#data-table tbody").on('click', '.dt-delete', function (evt) {
-                        therow = $(this);
-                        var dtRow = therow.parents('tr');
-                        var indRow = t.row(dtRow).index();
-                        if (confirm("Are you sure to delete this row?")) {
-                            t.row(indRow).remove().draw(false);
-                        }
-                    });
+                $("#data-table tbody").on('click', '.dt-delete', function (evt) {
+                    therow = $(this);
+                    var dtRow = therow.parents('tr');
+                    var indRow = t.row(dtRow).index();
+                    if (confirm("Are you sure to delete this row?")) {
+                        t.row(indRow).remove().draw(false);
+                    }
+                });
                 //});
             });
             $('#importModal').modal('hide');
